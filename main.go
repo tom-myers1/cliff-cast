@@ -1,22 +1,45 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
-// Res represents the things we want from the json response
+// R1 is top level struct
+type R1 struct {
+	//Creation   string `json:"feedCreation"`
+	//Creator    string `json:"feedCreator"`
+	//Model      string `json:"feedModel"`
+	//Run        string `json:"feedModelRun"`
+	//Time       string `json:"feedModelRunInitialTime"`
+	//Resolution string `json:"feedResolution"`
+	D1 D1 `json:"metcheckData"`
+}
+
+// D1 is level 2 struct
+type D1 struct {
+	Location F1 `json:"forecastLocation"`
+}
+
+// F1 is level 3
+type F1 struct {
+	//Continent string `json:"continent"`
+	Forecast []Res `json:"forecast"`
+}
+
+// Res represents the things we actually want from the json response
 type Res struct {
 	Temp   string `json:"temperature"`
 	Chance string `json:"chanceofrain"`
 	Rain   string `json:"rain"`
 	Wind   string `json:"windgustspeed"`
 	Humid  string `json:"humidity"`
-	Day    string `json:"dayOfWeek"`
+	Day    string `json:"dayOfWeek"` // 1 (sunday) to 7 (saturday)
+	Utc    string `json:"utcTime"`
+	DayN   string `json:"weekday"`
 }
 
 // check is a basic error checker
@@ -35,42 +58,47 @@ func getInfo(url string) []byte {
 	info, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	check(err)
-
+	//fmt.Println(info)
 	return info
 
 }
 
-func test1(info []byte) {
-	m := make(map[string]interface{})
-	err := json.Unmarshal(info, &m)
+// unmarshal sorts through json to filter what is needed
+func unmarshal(info []byte) {
+	// to struct
+	var data R1
+	err := json.Unmarshal(info, &data)
 	check(err)
-	//fmt.Print(m)
-	test := m["metcheckData"]
-	fmt.Println("test1")
-	fmt.Println("          ")
-	fmt.Println(test)
-
-	test2(test)
+	fCast := data.D1.Location.Forecast
+	forecast(fCast)
 }
 
-func test2(info interface{}) {
+// forecast checks through forecast for next 7 days
+func forecast(fCast []Res) {
+	loc, _ := time.LoadLocation("UTC")
 
-	fmt.Println("test2")
-	fmt.Println("          ")
-	gob.Register(map[string]interface{}{})
-	var buf bytes.Buffer // stand in for network
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(info)
-	check(err)
+	now := time.Now().In(loc)
+	fmt.Println(now)
 
-	fmt.Print(buf.Bytes())
+	for _, t := range fCast {
+
+		//diff := (t.Utc).Sub(now)
+		fmt.Println("temp = ", t.Temp, "degrees celcius")
+		fmt.Println("chance of rain = ", t.Chance, "%")
+		fmt.Println("humidity = ", t.Humid, "%")
+		fmt.Println("ammount of rain = ", t.Rain, "mm per hour")
+		fmt.Println("day = ", t.Day)
+		fmt.Println("utc = ", t.Utc)
+		fmt.Println("day = ", t.DayN)
+		fmt.Println(" ")
+	}
 
 }
 
 func main() {
 	url := "http://ws1.metcheck.com/ENGINE/v9_0/json.asp?lat=53.9&lon=-1.6&lid=67633&Fc=No"
 	info := getInfo(url)
-	test1(info) // json unmarshal
+	//test1(info) // json unmarshal
 	//test2(info) // gob
-	//test3(info) // something else
+	unmarshal(info) // unmarshall to struct
 }

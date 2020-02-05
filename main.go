@@ -10,12 +10,6 @@ import (
 
 // R1 is top level struct
 type R1 struct {
-	//Creation   string `json:"feedCreation"`
-	//Creator    string `json:"feedCreator"`
-	//Model      string `json:"feedModel"`
-	//Run        string `json:"feedModelRun"`
-	//Time       string `json:"feedModelRunInitialTime"`
-	//Resolution string `json:"feedResolution"`
 	D1 D1 `json:"metcheckData"`
 }
 
@@ -26,7 +20,6 @@ type D1 struct {
 
 // F1 is level 3
 type F1 struct {
-	//Continent string `json:"continent"`
 	Forecast []Res `json:"forecast"`
 }
 
@@ -98,7 +91,5 @@ func forecast(fCast []Res) {
 func main() {
 	url := "http://ws1.metcheck.com/ENGINE/v9_0/json.asp?lat=53.9&lon=-1.6&lid=67633&Fc=No"
 	info := getInfo(url)
-	//test1(info) // json unmarshal
-	//test2(info) // gob
 	unmarshal(info) // unmarshall to struct
 }

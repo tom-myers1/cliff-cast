@@ -8,6 +8,16 @@ import (
 	"time"
 )
 
+const d float64 = -72
+const sun int = 1
+const mon int = 2
+const tue int = 3
+const wed int = 4
+const thu int = 5
+const fri int = 6
+const sat int = 7
+
+
 // R1 is top level struct
 type R1 struct {
 	D1 D1 `json:"metcheckData"`
@@ -34,6 +44,8 @@ type Res struct {
 	Utc    string `json:"utcTime"`
 	DayN   string `json:"weekday"`
 }
+
+
 
 // check is a basic error checker
 func check(e error) {
@@ -69,21 +81,29 @@ func unmarshal(info []byte) {
 // forecast checks through forecast for next 7 days
 func forecast(fCast []Res) {
 	loc, _ := time.LoadLocation("UTC")
+	layout := "2006-01-02T15:04:05"
 
 	now := time.Now().In(loc)
-	fmt.Println(now)
+
+	//check(err)
+	fmt.Println(now.Weekday())
 
 	for _, t := range fCast {
+		// attempt to parse utc to time
+		tt, err := time.Parse(layout, t.Utc)
+		check(err)
+		diff := now.Sub(tt)
 
-		//diff := (t.Utc).Sub(now)
-		fmt.Println("temp = ", t.Temp, "degrees celcius")
-		fmt.Println("chance of rain = ", t.Chance, "%")
-		fmt.Println("humidity = ", t.Humid, "%")
-		fmt.Println("ammount of rain = ", t.Rain, "mm per hour")
-		fmt.Println("day = ", t.Day)
-		fmt.Println("utc = ", t.Utc)
-		fmt.Println("day = ", t.DayN)
-		fmt.Println(" ")
+		// filter down to next 5 days
+		if diff.Hours() > d {
+			fmt.Println("temp = ", t.Temp, "degrees celcius")
+			fmt.Println("chance of rain = ", t.Chance, "%")
+			fmt.Println("humidity = ", t.Humid, "%")
+			fmt.Println("ammount of rain = ", t.Rain, "mm per hour")
+			fmt.Println("day = ", t.Day)
+			fmt.Println("utc = ", t.Utc)
+			fmt.Println("day = ", t.DayN)
+		}
 	}
 
 }
@@ -92,4 +112,8 @@ func main() {
 	url := "http://ws1.metcheck.com/ENGINE/v9_0/json.asp?lat=53.9&lon=-1.6&lid=67633&Fc=No"
 	info := getInfo(url)
 	unmarshal(info) // unmarshall to struct
+
+	// getting date for main title of page
+	day := time.Now().Weekday()
+	fmt.Println(day)
 }

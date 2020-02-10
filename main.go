@@ -8,7 +8,11 @@ import (
 	"time"
 )
 
+// used for comparing data to todays date to get 3 days
 const d float64 = -72
+
+// used for weekend
+const w float64 = -168
 const sun int = 1
 const mon int = 2
 const tue int = 3
@@ -16,7 +20,6 @@ const wed int = 4
 const thu int = 5
 const fri int = 6
 const sat int = 7
-
 
 // R1 is top level struct
 type R1 struct {
@@ -44,8 +47,6 @@ type Res struct {
 	Utc    string `json:"utcTime"`
 	DayN   string `json:"weekday"`
 }
-
-
 
 // check is a basic error checker
 func check(e error) {
@@ -83,18 +84,29 @@ func forecast(fCast []Res) {
 	loc, _ := time.LoadLocation("UTC")
 	layout := "2006-01-02T15:04:05"
 
-	now := time.Now().In(loc)
-
-	//check(err)
-	fmt.Println(now.Weekday())
+	now := time.Now().In(loc).Truncate(24 * time.Hour)
 
 	for _, t := range fCast {
 		// attempt to parse utc to time
 		tt, err := time.Parse(layout, t.Utc)
 		check(err)
-		diff := now.Sub(tt)
+		diff := now.Sub(tt.Truncate(24 * time.Hour))
 
-		// filter down to next 5 days
+		switch {
+		case diff.Hours() == 0: // today
+			fmt.Println("today")
+		case diff.Hours() == -24: // tomorrow
+			fmt.Println("tomorrow")
+		case diff.Hours() == -48: //day after
+			fmt.Println("the day after")
+		case diff.Hours() > w && t.Day == "7": // saturday
+			fmt.Println("saturday")
+		case diff.Hours() > w && t.Day == "1": // sunday
+			fmt.Println("sunday")
+
+		}
+
+		/* filter down to next d days
 		if diff.Hours() > d {
 			fmt.Println("temp = ", t.Temp, "degrees celcius")
 			fmt.Println("chance of rain = ", t.Chance, "%")
@@ -103,7 +115,7 @@ func forecast(fCast []Res) {
 			fmt.Println("day = ", t.Day)
 			fmt.Println("utc = ", t.Utc)
 			fmt.Println("day = ", t.DayN)
-		}
+		} */
 	}
 
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -34,6 +35,15 @@ type D1 struct {
 // F1 is level 3
 type F1 struct {
 	Forecast []Res `json:"forecast"`
+}
+
+// Final is used to calc the final values to display
+type Final struct {
+	Day        string
+	RainTotal  float64
+	RainChance []int64
+	Temp       []int64
+	Wind       []int64
 }
 
 // Res represents the things we actually want from the json response
@@ -81,6 +91,9 @@ func unmarshal(info []byte) {
 
 // forecast checks through forecast for next 7 days
 func forecast(fCast []Res) {
+
+	var tDay string
+	var d1, d2, d3 Final
 	loc, _ := time.LoadLocation("UTC")
 	layout := "2006-01-02T15:04:05"
 
@@ -92,32 +105,51 @@ func forecast(fCast []Res) {
 		check(err)
 		diff := now.Sub(tt.Truncate(24 * time.Hour))
 
+		xTemp, err := strconv.ParseInt(t.Temp, 10, 10)
+		check(err)
+		xRChance, err := strconv.ParseInt(t.Chance, 10, 10)
+		check(err)
+		xRTotal, err := strconv.ParseFloat(t.Rain, 10)
+		check(err)
+		xWind, err := strconv.ParseInt(t.Wind, 10, 10)
+		check(err)
+
 		switch {
 		case diff.Hours() == 0: // today
-			fmt.Println("today")
-		case diff.Hours() == -24: // tomorrow
-			fmt.Println("tomorrow")
-		case diff.Hours() == -48: //day after
-			fmt.Println("the day after")
-		case diff.Hours() > w && t.Day == "7": // saturday
-			fmt.Println("saturday")
-		case diff.Hours() > w && t.Day == "1": // sunday
-			fmt.Println("sunday")
 
+			tDay = "today"
+			d1.Day = tDay
+			d1.RainChance = append(d1.RainChance, xRChance)
+			d1.RainTotal = d1.RainTotal + xRTotal
+			d1.Wind = append(d1.Wind, xWind)
+			d1.Temp = append(d1.Temp, xTemp)
+		case diff.Hours() == -24: // tomorrow
+
+			tDay = "tomorrow"
+			d2.Day = tDay
+			d2.RainChance = append(d2.RainChance, xRChance)
+			d2.RainTotal = d2.RainTotal + xRTotal
+			d2.Wind = append(d2.Wind, xWind)
+			d2.Temp = append(d2.Temp, xTemp)
+		case diff.Hours() == -48: //day after
+
+			tDay = t.DayN
+			d3.Day = tDay
+			d3.RainChance = append(d3.RainChance, xRChance)
+			d3.RainTotal = d3.RainTotal + xRTotal
+			d3.Wind = append(d3.Wind, xWind)
+			d3.Temp = append(d3.Temp, xTemp)
+		default:
+			// do nothing
 		}
 
-		/* filter down to next d days
-		if diff.Hours() > d {
-			fmt.Println("temp = ", t.Temp, "degrees celcius")
-			fmt.Println("chance of rain = ", t.Chance, "%")
-			fmt.Println("humidity = ", t.Humid, "%")
-			fmt.Println("ammount of rain = ", t.Rain, "mm per hour")
-			fmt.Println("day = ", t.Day)
-			fmt.Println("utc = ", t.Utc)
-			fmt.Println("day = ", t.DayN)
-		} */
 	}
-
+	fmt.Println("today...")
+	fmt.Println(d1)
+	fmt.Println("tomorrow")
+	fmt.Println(d2)
+	fmt.Println("day after")
+	fmt.Println(d3)
 }
 
 func main() {

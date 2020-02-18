@@ -9,19 +9,6 @@ import (
 	"time"
 )
 
-// used for comparing data to todays date to get 3 days
-const d float64 = -72
-
-// used for weekend
-const w float64 = -168
-const sun int = 1
-const mon int = 2
-const tue int = 3
-const wed int = 4
-const thu int = 5
-const fri int = 6
-const sat int = 7
-
 // R1 is top level struct
 type R1 struct {
 	D1 D1 `json:"metcheckData"`
@@ -44,6 +31,8 @@ type Final struct {
 	RainChance []int64
 	Temp       []int64
 	Wind       []int64
+	Gust       []int64
+	Humid      []int64
 }
 
 // Res represents the things we actually want from the json response
@@ -53,9 +42,9 @@ type Res struct {
 	Rain   string `json:"rain"`
 	Wind   string `json:"windgustspeed"`
 	Humid  string `json:"humidity"`
-	Day    string `json:"dayOfWeek"` // 1 (sunday) to 7 (saturday)
 	Utc    string `json:"utcTime"`
 	DayN   string `json:"weekday"`
+	WindS  string `json:"windspeed"`
 }
 
 // check is a basic error checker
@@ -74,7 +63,7 @@ func getInfo(url string) []byte {
 	info, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	check(err)
-	//fmt.Println(info)
+
 	return info
 
 }
@@ -87,6 +76,38 @@ func unmarshal(info []byte) {
 	check(err)
 	fCast := data.D1.Location.Forecast
 	forecast(fCast)
+}
+
+// MinMax returns the min and max values frm int64 slice
+func MinMax(array []int64) (int64, int64) {
+	var max = array[0]
+	var min = array[0]
+	for _, value := range array {
+		if max < value {
+			max = value
+		}
+		if min > value {
+			min = value
+		}
+	}
+	return min, max
+}
+
+// quickPrint just displays to console
+func quickPrint(f Final) {
+	rmin, rmax := MinMax(f.RainChance)
+	tmin, tmax := MinMax(f.Temp)
+	wmin, wmax := MinMax(f.Wind)
+	gmin, gmax := MinMax(f.Gust)
+	hmin, hmax := MinMax(f.Humid)
+
+	fmt.Println(f.Day)
+	fmt.Printf("chance of rain between %d percent and %d percent\n", rmin, rmax)
+	fmt.Printf("total rain = %.2f cm\n", f.RainTotal)
+	fmt.Printf("temp between %dc and %dc\n", tmin, tmax)
+	fmt.Printf("wind speed between %dmph and %dmph\n", wmin, wmax)
+	fmt.Printf("gusts between %d and %d\n", gmin, gmax)
+	fmt.Printf("humidity between %d and %d\n", hmin, hmax)
 }
 
 // forecast checks through forecast for next 7 days
@@ -113,6 +134,10 @@ func forecast(fCast []Res) {
 		check(err)
 		xWind, err := strconv.ParseInt(t.Wind, 10, 10)
 		check(err)
+		xGust, err := strconv.ParseInt(t.Wind, 10, 10)
+		check(err)
+		xHumid, err := strconv.ParseInt(t.Humid, 10, 10)
+		check(err)
 
 		switch {
 		case diff.Hours() == 0: // today
@@ -122,7 +147,10 @@ func forecast(fCast []Res) {
 			d1.RainChance = append(d1.RainChance, xRChance)
 			d1.RainTotal = d1.RainTotal + xRTotal
 			d1.Wind = append(d1.Wind, xWind)
+			d1.Gust = append(d1.Gust, xGust)
 			d1.Temp = append(d1.Temp, xTemp)
+			d1.Humid = append(d1.Humid, xHumid)
+
 		case diff.Hours() == -24: // tomorrow
 
 			tDay = "tomorrow"
@@ -130,7 +158,10 @@ func forecast(fCast []Res) {
 			d2.RainChance = append(d2.RainChance, xRChance)
 			d2.RainTotal = d2.RainTotal + xRTotal
 			d2.Wind = append(d2.Wind, xWind)
+			d2.Gust = append(d2.Gust, xGust)
 			d2.Temp = append(d2.Temp, xTemp)
+			d2.Humid = append(d2.Humid, xHumid)
+
 		case diff.Hours() == -48: //day after
 
 			tDay = t.DayN
@@ -138,18 +169,20 @@ func forecast(fCast []Res) {
 			d3.RainChance = append(d3.RainChance, xRChance)
 			d3.RainTotal = d3.RainTotal + xRTotal
 			d3.Wind = append(d3.Wind, xWind)
+			d3.Gust = append(d3.Gust, xGust)
 			d3.Temp = append(d3.Temp, xTemp)
+			d3.Humid = append(d3.Humid, xHumid)
+
 		default:
 			// do nothing
 		}
 
 	}
-	fmt.Println("today...")
-	fmt.Println(d1)
-	fmt.Println("tomorrow")
-	fmt.Println(d2)
-	fmt.Println("day after")
-	fmt.Println(d3)
+
+	quickPrint(d1)
+	quickPrint(d2)
+	quickPrint(d3)
+
 }
 
 func main() {
@@ -157,7 +190,4 @@ func main() {
 	info := getInfo(url)
 	unmarshal(info) // unmarshall to struct
 
-	// getting date for main title of page
-	day := time.Now().Weekday()
-	fmt.Println(day)
 }

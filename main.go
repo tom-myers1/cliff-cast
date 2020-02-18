@@ -157,7 +157,5 @@ func main() {
 	info := getInfo(url)
 	unmarshal(info) // unmarshall to struct
 
-	// getting date for main title of page
-	day := time.Now().Weekday()
-	fmt.Println(day)
+
 }

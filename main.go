@@ -74,7 +74,7 @@ func getInfo(url string) []byte {
 	info, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	check(err)
-	//fmt.Println(info)
+
 	return info
 
 }
@@ -87,6 +87,34 @@ func unmarshal(info []byte) {
 	check(err)
 	fCast := data.D1.Location.Forecast
 	forecast(fCast)
+}
+
+// MinMax returns the min and max values frm int64 slice
+func MinMax(array []int64) (int64, int64) {
+	var max = array[0]
+	var min = array[0]
+	for _, value := range array {
+		if max < value {
+			max = value
+		}
+		if min > value {
+			min = value
+		}
+	}
+	return min, max
+}
+
+// quickPrint just displays to console
+func quickPrint(f Final) {
+	rmin, rmax := MinMax(f.RainChance)
+	tmin, tmax := MinMax(f.Temp)
+	wmin, wmax := MinMax(f.Wind)
+
+	fmt.Println(f.Day)
+	fmt.Printf("chance of rain between %d percent and %d percent\n", rmin, rmax)
+	fmt.Printf("total rain = %.2f mm\n", f.RainTotal)
+	fmt.Printf("temp between %dc and %dc\n", tmin, tmax)
+	fmt.Printf("wind speed between %dmph and %dmph\n", wmin, wmax)
 }
 
 // forecast checks through forecast for next 7 days
@@ -144,18 +172,14 @@ func forecast(fCast []Res) {
 		}
 
 	}
-	fmt.Println("today...")
-	fmt.Println(d1)
-	fmt.Println("tomorrow")
-	fmt.Println(d2)
-	fmt.Println("day after")
-	fmt.Println(d3)
+	quickPrint(d1)
+	quickPrint(d2)
+	quickPrint(d3)
 }
 
 func main() {
 	url := "http://ws1.metcheck.com/ENGINE/v9_0/json.asp?lat=53.9&lon=-1.6&lid=67633&Fc=No"
 	info := getInfo(url)
 	unmarshal(info) // unmarshall to struct
-
 
 }

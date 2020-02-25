@@ -15,6 +15,11 @@ import (
 
 var d1, d2, d3 Final
 
+// InputURL is URL passed to endpoint
+type InputURL struct {
+	I string `json:"url"`
+}
+
 // R1 is top level struct
 type R1 struct {
 	D1 D1 `json:"metcheckData"`
@@ -215,7 +220,10 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 // GetURL posts URL
 func GetURL(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "expects to be passed a URL") // future proofing to allow for more locations to be added
+	var input InputURL
+    _ = json.NewDecoder(r.Body).Decode(&input)
+    json.NewEncoder(w).Encode(input)
+	
 }
 
 // Start is used to get info and start passing info about
@@ -238,3 +246,5 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", handlers.CORS(handlers.AllowedMethods([]string{"GET", "POST"}), handlers.AllowedOrigins([]string{"*"}))(r)))
 
 }
+
+

@@ -1,2 +1,2 @@
 # cliff-cast
-### show conditions at almscliff
+### show conditions at almscliff, brimham and trollers

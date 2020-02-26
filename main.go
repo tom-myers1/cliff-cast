@@ -13,8 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var d1, d2, d3 Final
-
 // InputURL is URL passed to endpoint
 type InputURL struct {
 	I string `json:"url"`
@@ -67,7 +65,7 @@ func check(e error) {
 }
 
 // getInfo calls endpoint and returns []byte
-func getInfo(url string) []byte {
+func getInfo(url string) []Res {
 
 	res, err := http.Get(url)
 	check(err)
@@ -75,18 +73,14 @@ func getInfo(url string) []byte {
 	res.Body.Close()
 	check(err)
 
-	return info
-
-}
-
-// unmarshal sorts through json to filter what is needed
-func unmarshal(info []byte) []Res {
 	// to struct
 	var data R1
-	err := json.Unmarshal(info, &data)
+	err = json.Unmarshal(info, &data)
 	check(err)
 	fCast := data.D1.Location.Forecast
+
 	return fCast
+
 }
 
 // MinMax returns the min and max values frm int64 slice
@@ -104,8 +98,8 @@ func MinMax(array []int64) (int64, int64) {
 	return min, max
 }
 
-// quickPrint just displays to console (and now returns Final)
-func quickPrint(f Final) Final {
+// Format just displays to console (and now returns Final)
+func Format(f Final) Final {
 	var r Final
 	rmin, rmax := MinMax(f.RainChance)
 	tmin, tmax := MinMax(f.Temp)
@@ -114,20 +108,13 @@ func quickPrint(f Final) Final {
 	hmin, hmax := MinMax(f.Humid)
 
 	r.Day = f.Day
-	r.RainTotal = f.RainTotal // math.Round(f.RainTotal) - rounds to whole?!?!?
+	r.RainTotal = f.RainTotal
 	r.RainChance = append(r.RainChance, rmin, rmax)
 	r.Temp = append(r.Temp, tmin, tmax)
 	r.Wind = append(r.Wind, wmin, wmax)
 	r.Gust = append(r.Gust, gmin, gmax)
 	r.Humid = append(r.Humid, hmin, hmax)
 
-	fmt.Println(f.Day)
-	fmt.Printf("chance of rain between %d percent and %d percent\n", rmin, rmax)
-	fmt.Printf("total rain = %.2f cm\n", f.RainTotal)
-	fmt.Printf("temp between %dc and %dc\n", tmin, tmax)
-	fmt.Printf("wind speed between %dmph and %dmph\n", wmin, wmax)
-	fmt.Printf("gusts between %d and %d\n", gmin, gmax)
-	fmt.Printf("humidity between %d and %d\n", hmin, hmax)
 	return r
 }
 
@@ -135,10 +122,9 @@ func quickPrint(f Final) Final {
 func forecast(fCast []Res) (Final, Final, Final) {
 
 	var tDay string
-	//var d1, d2, d3 Final
+	var d1, d2, d3 Final
 	loc, _ := time.LoadLocation("UTC")
 	layout := "2006-01-02T15:04:05"
-
 	now := time.Now().In(loc).Truncate(24 * time.Hour)
 
 	for _, t := range fCast {
@@ -200,51 +186,28 @@ func forecast(fCast []Res) (Final, Final, Final) {
 
 	}
 
-	d1 = quickPrint(d1)
-	d2 = quickPrint(d2)
-	d3 = quickPrint(d3)
-	return d1, d2, d3
+	r1 := Format(d1)
+	r2 := Format(d2)
+	r3 := Format(d3)
+	return r1, r2, r3
 
 }
 
 // Call returns data
 func Call(w http.ResponseWriter, r *http.Request) {
+	var input InputURL
+	_ = json.NewDecoder(r.Body).Decode(&input)
+	//json.NewEncoder(w).Encode(input)
+	info := getInfo(input.I)
+	d1, d2, d3 := forecast(info)
 	fmt.Fprint(w, d1, d2, d3)
 }
 
-// Refresh resfreshes data
-func Refresh(w http.ResponseWriter, r *http.Request) {
-	Start()
-	fmt.Fprint(w, "refreshing!")
-}
-
-// GetURL posts URL
-func GetURL(w http.ResponseWriter, r *http.Request) {
-	var input InputURL
-    _ = json.NewDecoder(r.Body).Decode(&input)
-    json.NewEncoder(w).Encode(input)
-	
-}
-
-// Start is used to get info and start passing info about
-func Start() {
-
-	url := "http://ws1.metcheck.com/ENGINE/v9_0/json.asp?lat=53.9&lon=-1.6&lid=67633&Fc=No"
-	info := getInfo(url)
-	unmarsh := unmarshal(info)
-	forecast(unmarsh)
-
-}
-
 func main() {
-	Start()
+	// start endpoint
 	r := mux.NewRouter().StrictSlash(true)
-	r.HandleFunc("/call", Call).Methods("GET")
-	r.HandleFunc("/refresh", Refresh).Methods("GET")
-	r.HandleFunc("/Url", GetURL).Methods("POST")
+	r.HandleFunc("/call", Call).Methods("GET", "POST")
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", handlers.CORS(handlers.AllowedMethods([]string{"GET", "POST"}), handlers.AllowedOrigins([]string{"*"}))(r)))
 
 }
-
-

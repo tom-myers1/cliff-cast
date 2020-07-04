@@ -78,7 +78,7 @@ func getInfo(url string) []Res {
 	err = json.Unmarshal(info, &data)
 	check(err)
 	fCast := data.D1.Location.Forecast
-
+	err = ioutil.WriteFile("response", info, 0644)
 	return fCast
 
 }
@@ -198,13 +198,16 @@ func Call(w http.ResponseWriter, r *http.Request) {
 	var input InputURL
 	_ = json.NewDecoder(r.Body).Decode(&input)
 	//json.NewEncoder(w).Encode(input)
+
+	fmt.Println(input)
 	info := getInfo(input.I)
 	d1, d2, d3 := forecast(info)
 	fmt.Fprint(w, d1, d2, d3)
 }
 
 func main() {
-	// start endpoint
+	// start
+	fmt.Println("starting")
 	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/call", Call).Methods("GET", "POST")
 	http.Handle("/", r)
